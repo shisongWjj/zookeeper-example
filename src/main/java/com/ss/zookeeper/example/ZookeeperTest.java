@@ -5,6 +5,10 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.BackgroundCallback;
 import org.apache.curator.framework.api.CuratorEvent;
+import org.apache.curator.framework.recipes.cache.ChildData;
+import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.ACL;
@@ -42,7 +46,9 @@ public class ZookeeperTest {
         //update(curatorFramework);
         //get(curatorFramework);
         //operatorWithAsync(curatorFramework);
-        authOperation(curatorFramework);
+        //authOperation(curatorFramework);
+        addPathChildCacheListener(curatorFramework,"/locks");
+        System.in.read();
     }
 
     private static void creat(CuratorFramework curatorFramework) throws Exception{
@@ -87,6 +93,23 @@ public class ZookeeperTest {
                 .withMode(CreateMode.PERSISTENT)
                 .withACL(acls)
                 .forPath("/first_auth","66666".getBytes());
+    }
+
+
+    private static void addPathChildCacheListener(CuratorFramework curatorFramework,String path) throws Exception{
+        PathChildrenCache pathChildrenCache = new PathChildrenCache(curatorFramework,path,true);
+        PathChildrenCacheListener pathChildrenCacheListener = new PathChildrenCacheListener() {
+            @Override
+            public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
+                System.out.println("子节点事件变更的回调");
+                ChildData childData = event.getData();
+                System.out.println(childData.getPath()+"-"+new String(childData.getData()));
+            }
+        };
+        //将监听 添加进去
+        pathChildrenCache.getListenable().addListener(pathChildrenCacheListener);
+        //启动
+        pathChildrenCache.start(PathChildrenCache.StartMode.NORMAL);
     }
 
     private void originApiTest() throws Exception{
